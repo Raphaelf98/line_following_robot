@@ -10,10 +10,12 @@
 #define SATURATION 100
 #define SERVO_SET_ANGLE 82
 #define OUTPUT_MIN 0
-#define OUTPUT_MAX 50
-#define KP 0.15
-#define KI 0.013
-#define KD 0.0015
+#define OUTPUT_MAX 70
+#define KP 0.08
+#define KI 0.000005
+#define KD 0.0000005
+#define DELAY 8
+#define SPEED 180
 /*#define KP 0.15
 #define KI 0.01
 #define KD 0.0015*/
@@ -44,14 +46,14 @@ class IRSensor
       val = 100;
     }
     else{
-     val =map(tmp,low_,high_,0,100)+offset_;
+     val =map(tmp,low_,high_,0,90)+offset_;
     }
   }
   void read_raw(int &val)
   {
     //filter_.add(analogRead(p1_)+offset_);
     //val = filter_.get();
-    val = map(analogRead(p1_),0,1024,0,100)+offset_;
+    val = map(analogRead(p1_),0,1024,0,30)+offset_;
   }
   private:
   int p1_;
@@ -121,15 +123,15 @@ void loop()
 {
   //servo.set(100);
 
-  motor.setSpeed(200);
-  motor.run(FORWARD);
+  
   ir_left_.read_raw(val_l);
   ir_right_.read_raw(val_r);
+  delay(DELAY);
   
   int e =val_l-val_r;
   
    //Steer LEFT
-  if(abs(val_l - val_r)>1 && e>=0)
+  if(abs(val_l - val_r)>0 && e>=0)
   {
     error_left = abs(e);
     error_right =0;
@@ -154,9 +156,11 @@ void loop()
     //if(outputVal_left > 0.5 && outputVal_left <1)outputVal_left=1;
     angle = angle-outputVal_left;
      if(angle < SERVO_SET_ANGLE-OUTPUT_MAX){angle=SERVO_SET_ANGLE-OUTPUT_MAX;}
+     
     //Serial.println("ANGLE" + String(angle));
-    
-    servo.write((int)angle);
+    int angle_ = map(angle, SERVO_SET_ANGLE-OUTPUT_MAX,OUTPUT_MAX+SERVO_SET_ANGLE, 1000,2000);
+    servo.writeMicroseconds(angle_);
+    //servo.write((int)angle);
     //delay(1);           
     direction = "left";
     //Serial.println("Steer left  "+ String(angle));
@@ -168,14 +172,18 @@ void loop()
     angle = angle + outputVal_right;
     
     if(angle > OUTPUT_MAX+SERVO_SET_ANGLE){angle=SERVO_SET_ANGLE+OUTPUT_MAX;}
-   
-    servo.write((int)angle);
+    
+    int angle_ = map(angle, SERVO_SET_ANGLE-OUTPUT_MAX,OUTPUT_MAX+SERVO_SET_ANGLE, 1000,2000);
+    servo.writeMicroseconds(angle_);
+    //servo.write((int)angle);
     //delay(10);           
     //Serial.println("Steer right  "+ String(angle));
     direction = "right";
   }
   
-
+  int speed = map(abs(-SERVO_SET_ANGLE+angle), -OUTPUT_MAX, OUTPUT_MAX, 0,50);
+  motor.setSpeed(SPEED-speed);
+  motor.run(FORWARD);
   left = false;
   right = false;
  
@@ -186,6 +194,6 @@ void loop()
       //msg = 90;
   String s1 = String(val_l);
   String s2 = String(val_r); 
-  Serial.println("DIRECTION: " + direction+    "          LEFT: "+s1 + "    RIGHT: "+s2 + "   u_l: "+String(outputVal_left)+ "   u_r: "+String(outputVal_right) + "   angle:  "+ String(angle)  );
+  //Serial.println("DIRECTION: " + direction+    "          LEFT: "+s1 + "    RIGHT: "+s2 + "   u_l: "+String(outputVal_left)+ "   u_r: "+String(outputVal_right) + "   angle:  "+ String(angle)  );
   
 }

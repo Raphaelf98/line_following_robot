@@ -10,7 +10,7 @@
 #define SATURATION 100
 #define SERVO_SET_ANGLE 82
 #define OUTPUT_MIN 0
-#define OUTPUT_MAX 70
+#define OUTPUT_MAX 75
 #define KP 0.08
 #define KI 0.000005
 #define KD 0.0000005
@@ -158,7 +158,7 @@ void loop()
      if(angle < SERVO_SET_ANGLE-OUTPUT_MAX){angle=SERVO_SET_ANGLE-OUTPUT_MAX;}
      
     //Serial.println("ANGLE" + String(angle));
-    int angle_ = map(angle, SERVO_SET_ANGLE-OUTPUT_MAX,OUTPUT_MAX+SERVO_SET_ANGLE, 1000,2000);
+    int angle_ = map(angle, SERVO_SET_ANGLE-OUTPUT_MAX, OUTPUT_MAX+SERVO_SET_ANGLE, 1000,2000);
     servo.writeMicroseconds(angle_);
     //servo.write((int)angle);
     //delay(1);           

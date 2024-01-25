@@ -10,26 +10,25 @@
 #define IR_RIGHT A8
 #define LINE_DETECTOR A10
 #define SERVO 10
-#define SATURATION 100
+#define SATURATION 10
 #define SERVO_SET_ANGLE 82
 #define OUTPUT_MIN 0
 #define OUTPUT_MAX 80
-#define KP 0.04
-#define KI 0.00005
-#define KD 0.0000005
-#define DELAY 8
-#define SPEED 255
+#define KP 0.00034956
+#define KI 0.00000
+#define KD 0.00000
+#define DELAY 2
+#define SPEED 180
 #define LINE_THRESHOLD 35
 #define BREAK_DELAY 0
 #define PICKUP_DELAY 7000
 #define UNLOAD_DELAY 6000
-
+#define PICK 1
 
 enum {STANDBY, DRIVE_STEER, PICKUP, UNLOAD};
 /*#define KP 0.15
 
   #define KI 0.01
-
   #define KD 0.0015*/
 bool line_pass = false;
 int line_count = 0;
@@ -90,7 +89,8 @@ class IRSensor {
 
       //val = filter_.get();
 
-      val = map(analogRead(p1_), 0, 1024, 0, 80) + offset_;
+      val = map(analogRead(p1_), 0, 1024, 0, 100) + offset_;
+      //val = analogRead(p1_);
 
     }
 
@@ -130,6 +130,7 @@ class ServoDriver {
 
     }
 
+
     int get() {
 
       return state_;
@@ -155,7 +156,7 @@ void line_check(const int &val)
         delay(BREAK_DELAY);
         state = PICKUP;
       }
-      if(line_count == 6)
+      if(line_count ==8)
       {
         state = UNLOAD;
       }
@@ -191,7 +192,7 @@ double setPoint, outputVal, error, abs_error;
 
 PID pid(&abs_error, &outputVal, &setPoint, KP, KI, KD, REVERSE);
 
-int angle;
+double angle;
 
 bool left, right;
 
@@ -243,20 +244,20 @@ void loop() {
   if(state == DRIVE_STEER)
   {
   line_detector.read_raw(val_line);
-  line_check(val_line);
+  //line_check(val_line);
   
   motor.setSpeed(SPEED);
   motor.run(FORWARD);
 
   ir_left_.read_raw(val_l);
-
+  
   ir_right_.read_raw(val_r);
-
+  ir_right_.setOffset(0);
   delay(DELAY);
 
 
 
-  error = val_l - val_r;
+  error = 100*(val_l - val_r);
 
   abs_error = abs(error);
 
@@ -306,7 +307,8 @@ void loop() {
 
     angle = angle - outputVal;
 
-    if (angle < SERVO_SET_ANGLE - OUTPUT_MAX) {
+    if (angle < SERVO_SET_ANGLE - OUTPUT_MAX) 
+    {
       angle = SERVO_SET_ANGLE - OUTPUT_MAX;
     }
 
@@ -356,7 +358,7 @@ void loop() {
   String mot = String(val_line);
   String s2 = String(val_r);
 
-  //Serial.println("DIRECTION: " + direction + "          LEFT: " + s1 + "    RIGHT: " + s2 + "   u_l: " + String(outputVal) + "   u_r: " + String(outputVal) + "   angle:  " + String(angle) +"line: "+mot);
+  //Serial.println("DIRECTION: " + direction + "   LEFT: " + s1 + "    RIGHT: " + s2 + "   u: " + String(outputVal) + "   angle:  " + String(angle) +"  line: "+mot);
   }
   if(state == PICKUP)
   {
@@ -371,6 +373,12 @@ void loop() {
     state = DRIVE_STEER;
     
   }
+  if(state==UNLOAD)
+  {
+    motor.setSpeed(0);
+    motor.run(FORWARD);
+    
+   }
   
 
 }

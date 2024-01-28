@@ -14,16 +14,17 @@
 #define SERVO_SET_ANGLE 82
 #define OUTPUT_MIN 0
 #define OUTPUT_MAX 80
-#define KP 0.00034956
-#define KI 0.00000
-#define KD 0.00000
-#define DELAY 2
-#define SPEED 180
+#define KP 0.000079
+#define KI 0.000000
+#define KD 0.000000
+#define DELAY 0
+#define SPEED 200
 #define LINE_THRESHOLD 35
 #define BREAK_DELAY 0
 #define PICKUP_DELAY 7000
 #define UNLOAD_DELAY 6000
 #define PICK 1
+#define OFFSET_SENSOR 11
 
 enum {STANDBY, DRIVE_STEER, PICKUP, UNLOAD};
 /*#define KP 0.15
@@ -85,12 +86,13 @@ class IRSensor {
 
     void read_raw(int &val) {
 
-      //filter_.add(analogRead(p1_)+offset_);
+      filter_.add(analogRead(p1_));
 
-      //val = filter_.get();
+      val = filter_.get();
 
-      val = map(analogRead(p1_), 0, 1024, 0, 100) + offset_;
-      //val = analogRead(p1_);
+      
+      //val = analogRead(p1_) ;
+      val = map(val, 0, 1024, 0, 300) + offset_;
 
     }
 
@@ -100,7 +102,7 @@ class IRSensor {
 
     int low_, high_, offset_;
 
-    MovingAverage<int, 1> filter_;
+    MovingAverage<int, 3> filter_;
 
 };
 
@@ -245,14 +247,15 @@ void loop() {
   {
   line_detector.read_raw(val_line);
   //line_check(val_line);
-  
-  motor.setSpeed(SPEED);
+  int speed = map(abs(-SERVO_SET_ANGLE+angle), -OUTPUT_MAX, OUTPUT_MAX, 0,70);
+
+  motor.setSpeed(SPEED-speed);
   motor.run(FORWARD);
 
   ir_left_.read_raw(val_l);
   
   ir_right_.read_raw(val_r);
-  ir_right_.setOffset(0);
+  ir_right_.setOffset(OFFSET_SENSOR);
   delay(DELAY);
 
 

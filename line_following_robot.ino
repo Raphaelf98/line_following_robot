@@ -1,6 +1,7 @@
 #include <AFMotor.h>
 #include <Servo.h>
 #include <MovingAverage.h>
+#include <movingAvg.h>
 #include <PID_v1.h>
 
 #define MOTOR 1
@@ -14,19 +15,25 @@
 #define SERVO_SET_ANGLE 82
 #define OUTPUT_MIN 0
 #define OUTPUT_MAX 80
-#define KP 0.000079
+//#define KP 0.0000355
+//#define KI 0.000000
+//#define KD 0.000000115
+#define KP 0.00024
 #define KI 0.000000
-#define KD 0.000000
+#define KD 0.0000001
 #define DELAY 0
-#define SPEED 200
-#define LINE_THRESHOLD 35
+#define SPEED 255
+#define LINE_THRESHOLD 16
 #define BREAK_DELAY 0
 #define PICKUP_DELAY 7000
 #define UNLOAD_DELAY 6000
+#define RETRACT_DELAY 4000
 #define PICK 1
-#define OFFSET_SENSOR 11
+#define OFFSET_SENSOR -3
+#define MVG_AVG 1
 
-enum {STANDBY, DRIVE_STEER, PICKUP, UNLOAD};
+enum {STANDBY, DRIVE_STEER, PICKUP, UNLOAD, RETRACT, STOP};
+
 /*#define KP 0.15
 
   #define KI 0.01
@@ -86,13 +93,13 @@ class IRSensor {
 
     void read_raw(int &val) {
 
-      filter_.add(analogRead(p1_));
+      //filter_.add(analogRead(p1_));
 
-      val = filter_.get();
+      //val = filter_.get();
 
       
-      //val = analogRead(p1_) ;
-      val = map(val, 0, 1024, 0, 300) + offset_;
+      val = analogRead(p1_) ;
+      val = map(val, 0, 1024, 0, 100) + offset_;
 
     }
 
@@ -158,7 +165,11 @@ void line_check(const int &val)
         delay(BREAK_DELAY);
         state = PICKUP;
       }
-      if(line_count ==8)
+      if(line_count ==4)
+      {
+        state = RETRACT;
+      }
+      if(line_count ==5)
       {
         state = UNLOAD;
       }
@@ -190,6 +201,7 @@ int val_r;
 
 double setPoint, outputVal, error, abs_error;
 
+movingAvg movingAverage(MVG_AVG);
 
 
 PID pid(&abs_error, &outputVal, &setPoint, KP, KI, KD, REVERSE);
@@ -207,7 +219,8 @@ void setup() {
   //Sensorkalibrierung
 
 
-
+  
+  movingAverage.begin();  
   ir_right_.setOffset(0);
 
   servo.attach(SERVO);
@@ -236,7 +249,7 @@ transport_motor.setSpeed(0);
   left = false;
 
   right = false;
-
+ir_right_.setOffset(OFFSET_SENSOR);
 }
 
 
@@ -246,23 +259,27 @@ void loop() {
   if(state == DRIVE_STEER)
   {
   line_detector.read_raw(val_line);
-  //line_check(val_line);
-  int speed = map(abs(-SERVO_SET_ANGLE+angle), -OUTPUT_MAX, OUTPUT_MAX, 0,70);
-
+  line_check(val_line);
+  int speed = map(abs(-SERVO_SET_ANGLE+angle), -OUTPUT_MAX, OUTPUT_MAX, 0,30);
+   
   motor.setSpeed(SPEED-speed);
   motor.run(FORWARD);
 
   ir_left_.read_raw(val_l);
   
   ir_right_.read_raw(val_r);
-  ir_right_.setOffset(OFFSET_SENSOR);
-  delay(DELAY);
+  
+  //delay(DELAY);
 
 
 
-  error = 100*(val_l - val_r);
+  error = 20*(val_l - val_r);
+  
+  int errorMovingAvg = round(error);//movingAverage.reading(error);
 
-  abs_error = abs(error);
+  abs_error = abs(errorMovingAvg);
+  
+  
 
   // Serial.println(error);
 
@@ -296,7 +313,7 @@ void loop() {
 
 
 
-  String direction = "striaght";
+  //String direction = "striaght";
 
   if (left) {
 
@@ -319,11 +336,11 @@ void loop() {
 
     //Serial.println("ANGLE" + String(angle));
 
-    int angle_ = map(angle, SERVO_SET_ANGLE - OUTPUT_MAX, OUTPUT_MAX + SERVO_SET_ANGLE, 700, 2300);
+    int angle_ = map(angle, SERVO_SET_ANGLE - OUTPUT_MAX, OUTPUT_MAX + SERVO_SET_ANGLE, 600, 2300);
 
     servo.writeMicroseconds(angle_);
 
-    direction = "left";
+    //direction = "left";
 
   }
 
@@ -347,28 +364,32 @@ void loop() {
 
 
 
-    int angle_ = map(angle, SERVO_SET_ANGLE - OUTPUT_MAX, OUTPUT_MAX + SERVO_SET_ANGLE, 700, 2300);
+    int angle_ = map(angle, SERVO_SET_ANGLE - OUTPUT_MAX, OUTPUT_MAX + SERVO_SET_ANGLE, 600, 2300);
 
     servo.writeMicroseconds(angle_);
 
-    direction = "right";
+    //direction = "right";
 
   }
 
+ 
+  
 
-
-  String s1 = String(val_l);
-  String mot = String(val_line);
-  String s2 = String(val_r);
+  //String s1 = String(val_l);
+  //String mot = String(val_line);Serial.println(  "line: "+mot);
+  //String s2 = String(val_r);
 
   //Serial.println("DIRECTION: " + direction + "   LEFT: " + s1 + "    RIGHT: " + s2 + "   u: " + String(outputVal) + "   angle:  " + String(angle) +"  line: "+mot);
+  //
   }
   if(state == PICKUP)
   {
+    motor.setSpeed(255);
+    motor.run(BACKWARD);
+    delay(100);
     motor.setSpeed(0);
     motor.run(FORWARD);
-    
-    transport_motor.setSpeed(SPEED);
+    transport_motor.setSpeed(255);
     transport_motor.run(FORWARD);
     delay(PICKUP_DELAY);
     transport_motor.setSpeed(0);
@@ -376,12 +397,37 @@ void loop() {
     state = DRIVE_STEER;
     
   }
-  if(state==UNLOAD)
+  if(state == RETRACT)
   {
+    motor.setSpeed(100);
+    motor.run(BACKWARD);
+    delay(100);
     motor.setSpeed(0);
     motor.run(FORWARD);
+    transport_motor.setSpeed(255);
+    transport_motor.run(BACKWARD);
+    delay(RETRACT_DELAY);
+    transport_motor.setSpeed(0);
+    transport_motor.run(FORWARD);
+    state = DRIVE_STEER;
     
+  }
+  if(state==UNLOAD)
+  {
+    motor.setSpeed(255);
+    motor.run(BACKWARD);
+    delay(100);
+    motor.setSpeed(0);
+    motor.run(FORWARD);
+    transport_motor.setSpeed(255);
+    transport_motor.run(BACKWARD);
+    delay(UNLOAD_DELAY);
+    transport_motor.setSpeed(0);
+    transport_motor.run(BACKWARD);
+    state=STOP;
    }
-  
+  if(state==STOP){
+    motor.setSpeed(0);
+    motor.run(FORWARD);}
 
 }

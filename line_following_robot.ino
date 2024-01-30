@@ -18,7 +18,7 @@
 //#define KP 0.0000355
 //#define KI 0.000000
 //#define KD 0.000000115
-#define KP 0.00024
+#define KP 0.000225
 #define KI 0.000000
 #define KD 0.0000001
 #define DELAY 0
@@ -26,10 +26,10 @@
 #define LINE_THRESHOLD 16
 #define BREAK_DELAY 0
 #define PICKUP_DELAY 7000
-#define UNLOAD_DELAY 6000
+#define UNLOAD_DELAY 3600
 #define RETRACT_DELAY 4000
 #define PICK 1
-#define OFFSET_SENSOR -3
+#define OFFSET_SENSOR 0
 #define MVG_AVG 1
 
 enum {STANDBY, DRIVE_STEER, PICKUP, UNLOAD, RETRACT, STOP};

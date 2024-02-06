@@ -15,17 +15,17 @@
 #define SERVO_SET_ANGLE 82
 #define OUTPUT_MIN 0
 #define OUTPUT_MAX 80
-//#define KP 0.0000355
-//#define KI 0.000000
-//#define KD 0.000000115
+
 #define KP 0.000225
 #define KI 0.000000
 #define KD 0.0000001
 #define DELAY 0
 #define SPEED 255
-#define LINE_THRESHOLD 16
+#define LINE_THRESHOLD 22
+//set CALIBRATE equal to 1 to enable serial print
+#define CALIBRATE 0
 #define BREAK_DELAY 0
-#define PICKUP_DELAY 7000
+#define PICKUP_DELAY 6000
 #define UNLOAD_DELAY 3600
 #define RETRACT_DELAY 4000
 #define PICK 1
@@ -34,13 +34,11 @@
 
 enum {STANDBY, DRIVE_STEER, PICKUP, UNLOAD, RETRACT, STOP};
 
-/*#define KP 0.15
-
-  #define KI 0.01
-  #define KD 0.0015*/
 bool line_pass = false;
+bool setTimer = true;
 int line_count = 0;
 int state = DRIVE_STEER;
+unsigned long offset;
 class IRSensor {
 
   public:
@@ -256,7 +254,7 @@ ir_right_.setOffset(OFFSET_SENSOR);
 
 void loop() {
 
-  if(state == DRIVE_STEER)
+  if(state == DRIVE_STEER || state ==RETRACT)
   {
   line_detector.read_raw(val_line);
   line_check(val_line);
@@ -371,12 +369,31 @@ void loop() {
     //direction = "right";
 
   }
-
+  if (state == RETRACT)
+  {
+    if(setTimer == true)
+    {
+      offset = millis();
+      setTimer=false;
+    }
+    if(millis()-offset<RETRACT_DELAY)
+    {
+      
+      transport_motor.setSpeed(255);
+      transport_motor.run(BACKWARD);
+    }
+    else{
+      transport_motor.setSpeed(0);
+      transport_motor.run(BACKWARD);
+      state = DRIVE_STEER;
+      }
+  }
+  
  
   
 
   //String s1 = String(val_l);
-  //String mot = String(val_line);Serial.println(  "line: "+mot);
+  if (CALIBRATE){String mot = String(val_line);Serial.println(  "line: "+mot);}
   //String s2 = String(val_r);
 
   //Serial.println("DIRECTION: " + direction + "   LEFT: " + s1 + "    RIGHT: " + s2 + "   u: " + String(outputVal) + "   angle:  " + String(angle) +"  line: "+mot);
@@ -397,7 +414,7 @@ void loop() {
     state = DRIVE_STEER;
     
   }
-  if(state == RETRACT)
+  /*if(state == RETRACT)
   {
     motor.setSpeed(100);
     motor.run(BACKWARD);
@@ -411,7 +428,7 @@ void loop() {
     transport_motor.run(FORWARD);
     state = DRIVE_STEER;
     
-  }
+  }*/
   if(state==UNLOAD)
   {
     motor.setSpeed(255);

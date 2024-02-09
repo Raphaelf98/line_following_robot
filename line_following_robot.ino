@@ -18,10 +18,10 @@
 #define KD 0.0000001 ///D gain
 #define DELAY 0 //main loop delay
 #define SPEED 255 //drive speed
-#define LINE_THRESHOLD 22 //line threshold for line detection
+#define LINE_THRESHOLD 40 //line threshold for line detection
 //set CALIBRATE equal to 1 to enable serial print
 #define CALIBRATE 0 //calibrate state
-#define PICKUP_DELAY 6000 //time span in which transport motor is run in pickup mode
+#define PICKUP_DELAY 5800 //time span in which transport motor is run in pickup mode
 #define UNLOAD_DELAY 3600 //time span in which transport motor is run in unload mode
 #define RETRACT_DELAY 4000 //time span in which transport motor is run in retract mode
 #define OFFSET_SENSOR_RIGHT 0 //sensor offset 

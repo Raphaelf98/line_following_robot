@@ -108,7 +108,7 @@ void setup()
 {
 
   Serial.begin(9600);
-  Serial.println(F("Starting Line Follwing Transport Robot"));
+  Serial.println(F("Starting Line Following Transport Robot"));
   ir_right_.setOffset(OFFSET_SENSOR_RIGHT); //if range of sensor readings does not match, the range can be adjusted
   servo.attach(SERVO); //set ports
   delay(1000);

@@ -1,4 +1,4 @@
-![Line Following Transport Robot](car.jpg)
+![Line Following Transport Robot](car.png)
 
 # Line Following Transport Robot
 
